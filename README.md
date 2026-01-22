@@ -240,15 +240,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
-## 📊 Project Stats
-
-![GitHub stars](https://img.shields.io/github/stars/yourusername/docuhub?style=social)
-![GitHub forks](https://img.shields.io/github/forks/yourusername/docuhub?style=social)
-![GitHub issues](https://img.shields.io/github/issues/yourusername/docuhub)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/yourusername/docuhub)
-
----
-
 ## 🎥 Demo
 ### Screenshots
 
