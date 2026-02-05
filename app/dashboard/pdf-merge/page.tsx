@@ -22,7 +22,7 @@ export default function PdfMergePage() {
         const bytes = await file.arrayBuffer();
         const pdf = await PDFDocument.load(bytes);
         const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-        pages.forEach((page) => mergedPdf.addPage(page));
+        pages.forEach((page: any) => mergedPdf.addPage(page));
       }
 
       const mergedBytes = await mergedPdf.save();
