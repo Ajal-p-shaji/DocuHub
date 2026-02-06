@@ -13,6 +13,7 @@ This folder contains UX designs for the Merge PDF feature.
 <br>
 
   ##files-selected
+  <br>
 <img width="393" height="736" alt="Merge PDFs – Files Selected" src="https://github.com/user-attachments/assets/6d1b4a15-df3b-48cb-99e5-44ac3ad3ace8" />
 <br>
 
