@@ -7,6 +7,15 @@ export default function PdfMergePage() {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+const moveFile = (from: number, to: number) => {
+  const updated = [...files];
+  const [moved] = updated.splice(from, 1);
+  updated.splice(to, 0, moved);
+  setFiles(updated);
+};
+
 
 const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
   e.preventDefault();
@@ -102,6 +111,30 @@ const blob = new Blob([new Uint8Array(mergedBytes)], {
       />
 
       <p>{files.length} file(s) selected</p>
+      {files.map((file, index) => (
+  <div
+    key={index}
+    draggable
+    onDragStart={() => setDragIndex(index)}
+    onDragOver={(e) => e.preventDefault()}
+    onDrop={() => {
+      if (dragIndex === null) return;
+      moveFile(dragIndex, index);
+      setDragIndex(null);
+    }}
+    style={{
+      padding: "8px",
+      marginTop: "5px",
+      border: "1px solid gray",
+      borderRadius: "5px",
+      backgroundColor: "#f0f0f0",
+      cursor: "grab",
+    }}
+  >
+    📄 {file.name}
+  </div>
+))}
+
 
       <button
         onClick={handleMerge}
