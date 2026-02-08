@@ -9,6 +9,10 @@ export default function PdfProtectPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // NEW: feedback states
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -16,6 +20,8 @@ export default function PdfProtectPage() {
     if (e.target.files?.length) {
 
       setFile(e.target.files[0]);
+      setError("");
+      setSuccess("");
 
     }
 
@@ -23,16 +29,20 @@ export default function PdfProtectPage() {
 
   const protectPdf = async () => {
 
+    // Reset messages
+    setError("");
+    setSuccess("");
+
     if (!file) {
 
-      alert("Select PDF first");
+      setError("Please select a PDF file.");
       return;
 
     }
 
     if (!password) {
 
-      alert("Enter password");
+      setError("Please enter a password.");
       return;
 
     }
@@ -45,7 +55,6 @@ export default function PdfProtectPage() {
         await file.arrayBuffer()
       );
 
-      // REAL encryption
       const encryptedBytes = await encryptPDF(
         pdfBytes,
         password,
@@ -64,16 +73,21 @@ export default function PdfProtectPage() {
       a.href = url;
       a.download = "protected.pdf";
 
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
 
       URL.revokeObjectURL(url);
+
+      // Success message
+      setSuccess("PDF protected and downloaded successfully!");
 
     }
     catch (err) {
 
       console.error(err);
 
-      alert("Encryption failed");
+      setError("Encryption failed. Please try again.");
 
     }
     finally {
@@ -92,11 +106,25 @@ export default function PdfProtectPage() {
         Protect PDF
       </h1>
 
+      {/* Error message */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 text-red-700 border border-red-300 rounded">
+          {error}
+        </div>
+      )}
+
+      {/* Success message */}
+      {success && (
+        <div className="mb-4 p-3 bg-green-100 text-green-700 border border-green-300 rounded">
+          {success}
+        </div>
+      )}
+
       <input
         type="file"
         accept="application/pdf"
         onChange={handleFileChange}
-        className="mb-4 block w-full border p-2"
+        className="mb-4 block w-full border border-gray-300 p-2 rounded"
       />
 
       <input
@@ -106,13 +134,17 @@ export default function PdfProtectPage() {
         onChange={(e) =>
           setPassword(e.target.value)
         }
-        className="mb-4 block w-full border p-2"
+        className="mb-4 block w-full border border-gray-300 p-2 rounded"
       />
 
       <button
         onClick={protectPdf}
         disabled={loading}
-        className="bg-blue-600 text-white px-4 py-2 rounded"
+        className={`px-4 py-2 rounded text-white transition ${
+          loading
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-blue-600 hover:bg-blue-700"
+        }`}
       >
         {loading
           ? "Protecting..."
