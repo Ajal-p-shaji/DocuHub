@@ -83,11 +83,16 @@ export default function ToolUploadPage() {
 
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
-        setIsDraggingOver(true);
+        if (!isDraggingOver) {
+            setIsDraggingOver(true);
+        }
     };
 
-    const handleDragLeave = () => {
-        setIsDraggingOver(false);
+    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+        const relatedTarget = e.relatedTarget as Node | null;
+        if (relatedTarget && e.currentTarget.contains(relatedTarget)){
+            return;
+        }
     };
 
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -202,8 +207,27 @@ export default function ToolUploadPage() {
                                 onChange={handleFile}
                             />
                         </label>
+                        
                     </motion.div>
-
+                    <div className="flex items-center gap-6 mt-6">
+                                <button
+                                    onClick={() => {
+                                        setSelectedFile(null);
+                                        setHasUnsavedWork(false);
+                                    }}
+                                    className="text-xs text-red-500 hover:underline"
+                                >
+                                    Remove
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        router.push(`/tool/${toolId}/processing`);
+                                    }}
+                                    className="px-4 py-2 bg-[#1e1e2e] text-white text-sm font-medium rounded-lg hover:bg-[#2e2e3e] transition-colors"
+                                >
+                                    Process File
+                                </button>
+                            </div>
                     {fileError && (
                         <p className="mt-3 text-sm text-red-600">
                             {fileError}
