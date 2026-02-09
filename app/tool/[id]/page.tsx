@@ -14,6 +14,7 @@ export default function ToolUploadPage() {
     const [hasUnsavedWork, setHasUnsavedWork] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [fileError, setFileError] = useState<string | null>(null);
+    const [isDraggingOver, setIsDraggingOver] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     // Warn on refresh / tab close
@@ -72,6 +73,42 @@ export default function ToolUploadPage() {
                 `Unsupported file type. Please upload ${allowedTypes.join(", ")} file(s).`
             );
             e.target.value = "";
+            return;
+        }
+
+        setFileError(null);
+        setSelectedFile(file);
+        setHasUnsavedWork(true);
+    };
+
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        if (!isDraggingOver) {
+            setIsDraggingOver(true);
+        }
+    };
+
+    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+        const relatedTarget = e.relatedTarget as Node | null;
+        if (relatedTarget && e.currentTarget.contains(relatedTarget)){
+            return;
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setIsDraggingOver(false);
+
+        const file = e.dataTransfer.files?.[0];
+        if (!file) return;
+
+        const allowedTypes = getSupportedTypes();
+        const fileExtension = "." + file.name.split(".").pop()?.toLowerCase();
+
+        if (allowedTypes.length && !allowedTypes.includes(fileExtension)) {
+            setFileError(
+                `Unsupported file type. Please upload ${allowedTypes.join(", ")} file(s).`
+            );
             return;
         }
 
@@ -146,12 +183,19 @@ export default function ToolUploadPage() {
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="relative w-full rounded-2xl border-2 border-dashed border-[#ccdcdb] bg-[#eef6f5]"
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        className={`relative w-full rounded-2xl border-2 border-dashed transition-colors ${
+                            isDraggingOver
+                                ? "border-[#1e1e2e] bg-[#d9ebea]"
+                                : "border-[#ccdcdb] bg-[#eef6f5] hover:bg-[#e4eff0]"
+                        }`}
                     >
                         <label className="flex flex-col items-center justify-center h-[400px] cursor-pointer">
                             <Upload className="w-16 h-16 mb-4" />
                             <p className="text-xl font-medium">
-                                Drag & drop your file here
+                                {isDraggingOver ? "Drop your file here" : "Drag & drop your file here"}
                             </p>
                             <p className="text-muted-foreground">
                                 or click to browse
@@ -163,8 +207,27 @@ export default function ToolUploadPage() {
                                 onChange={handleFile}
                             />
                         </label>
+                        
                     </motion.div>
-
+                    <div className="flex items-center gap-6 mt-6">
+                                <button
+                                    onClick={() => {
+                                        setSelectedFile(null);
+                                        setHasUnsavedWork(false);
+                                    }}
+                                    className="text-xs text-red-500 hover:underline"
+                                >
+                                    Remove
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        router.push(`/tool/${toolId}/processing`);
+                                    }}
+                                    className="px-4 py-2 bg-[#1e1e2e] text-white text-sm font-medium rounded-lg hover:bg-[#2e2e3e] transition-colors"
+                                >
+                                    Process File
+                                </button>
+                            </div>
                     {fileError && (
                         <p className="mt-3 text-sm text-red-600">
                             {fileError}
