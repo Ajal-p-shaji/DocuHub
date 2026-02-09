@@ -47,6 +47,7 @@ export default function DocumentToPdfPage() {
     setFiles([]);
     setError("");
   };
+  const [isDragging, setIsDragging] = useState(false); // ✅ NEW
 
   const handleConvert = async () => {
     if (!files[0]) return;
@@ -65,16 +66,23 @@ export default function DocumentToPdfPage() {
     try {
       let text = "";
 
+      console.log("Processing:", file.name);
+
+      // DOCX Support
       if (file.name.toLowerCase().endsWith(".docx")) {
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
         text = result.value || "";
       } else {
+        console.log("Text file detected");
         text = await file.text();
       }
 
-      if (!text.trim()) throw new Error("No readable text");
+      if (!text || text.trim().length === 0) {
+        throw new Error("No readable text found in file");
+      }
 
+      // Create PDF
       const pdfDoc = await PDFDocument.create();
       const page = pdfDoc.addPage([595, 842]);
 
@@ -140,73 +148,55 @@ export default function DocumentToPdfPage() {
     <div style={{ maxWidth: 650, margin: "40px auto" }}>
       <h1>Document to PDF</h1>
 
-      {/* Hidden File Input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".txt,.html,.json,.docx"
-        onChange={handleFileChange}
-        style={{ display: "none" }}
-      />
-
-      {/* Drag & Drop Zone */}
+      {/* ✅ NEW DRAG + DROP AREA */}
       <div
-        onDrop={handleDrop}
-        onDragOver={(e) => e.preventDefault()}
-        onClick={() => fileInputRef.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
+        onDragLeave={() => {
+          setIsDragging(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragging(false);
+
+          if (e.dataTransfer.files) {
+            setFiles(Array.from(e.dataTransfer.files));
+          }
+        }}
         style={{
-          marginTop: 20,
-          padding: 40,
-          border: "2px solid #6c63ff",
-          borderRadius: 12,
+          border: isDragging ? "2px solid #4f46e5" : "2px dashed #aaa",
+          background: isDragging ? "#eef2ff" : "transparent",
+          padding: "40px",
           textAlign: "center",
+          borderRadius: "10px",
+          transition: "all 0.2s ease",
           cursor: "pointer",
-          background: "#f6f7ff",
+          marginTop: "20px"
         }}
       >
-        <p style={{ fontSize: 18 }}>📂 Drop file here or Click to Upload</p>
-      </div>
-
-      {/* Error */}
-      {error && (
-        <p style={{ color: "red", marginTop: 10 }}>
-          ❌ {error}
-        </p>
-      )}
-
-      {/* Preview */}
-      {files[0] && (
-        <div
-          style={{
-            marginTop: 20,
-            padding: 12,
-            border: "1px solid #ddd",
-            borderRadius: 8,
-            display: "flex",
-            justifyContent: "space-between",
-            background: "#fafafa",
+        <input
+          type="file"
+          accept=".txt,.html,.json,.docx"
+          onChange={(e) => {
+            if (!e.target.files) return;
+            setFiles(Array.from(e.target.files));
           }}
-        >
-          <span>📄 {files[0].name}</span>
+          style={{ display: "none" }}
+          id="fileUpload"
+        />
 
-          <button
-            onClick={handleRemoveFile}
-            style={{
-              background: "#ff4d4f",
-              color: "white",
-              border: "none",
-              padding: "6px 12px",
-              borderRadius: 6,
-            }}
-          >
-            Remove
-          </button>
-        </div>
-      )}
+        <label htmlFor="fileUpload" style={{ cursor: "pointer" }}>
+          {isDragging
+            ? "Drop file here 📂"
+            : "Drag & drop file here OR Click to select"}
+        </label>
+      </div>
 
       <br />
 
-      <button onClick={handleConvert} disabled={loading || !!error}>
+      <button onClick={handleConvert} disabled={loading}>
         {loading ? "Converting..." : "Convert to PDF"}
       </button>
     </div>
