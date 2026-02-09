@@ -15,6 +15,14 @@ export function ToolCard({ icon: Icon, title, description, href, disabled }: Too
             href={disabled ? "#" : href}
             className={`group relative flex items-center justify-between p-6 rounded-2xl border border-white/40 bg-white/40 backdrop-blur-sm transition-all hover:bg-white/60 hover:shadow-sm hover:border-white/60 ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
         >
+
+            {/* ✅ Coming Soon Badge */}
+            {disabled && (
+                <span className="absolute top-3 right-3 text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">
+                    Coming Soon
+                </span>
+            )}
+
             <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-transparent sm:bg-transparent text-[#4a5568]">
                     <Icon className="h-6 w-6 stroke-1" />

@@ -11,10 +11,9 @@ export default function Dashboard() {
           <p className="text-muted-foreground text-lg">Select what you want to do with your file</p>
         </div>
 
-        {/* Tools Grid matching Image 2 Style */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 max-w-5xl">
-         
 
+          {/* Active Tool */}
           <ToolCard
             icon={FileText}
             title="PDF Tools"
@@ -22,31 +21,37 @@ export default function Dashboard() {
             href="/tool/pdf-tools"
             disabled={false}
           />
+
+          {/* Coming Soon */}
           <ToolCard
             icon={ArrowLeftRight}
             title="File Conversion"
             description="Convert document formats"
             href="/tool/file-conversion"
-            disabled={false}
+            disabled={true}
           />
+
+          {/* Coming Soon */}
           <ToolCard
             icon={ScanText}
             title="OCR"
             description="Extract text from images"
             href="/tool/ocr"
-            disabled={false}
+            disabled={true}
           />
+
+          {/* Coming Soon */}
           <ToolCard
             icon={LayoutGrid}
             title="Data Tools"
             description="Clean and process files"
             href="/tool/data-tools"
-            disabled={false}
+            disabled={true}
           />
+
         </div>
 
       </main>
-      {/* Footer is now in layout.tsx */}
     </div>
   );
 }
