@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
-import * as pdfjsLib from "pdfjs-dist";
+import { useState, useRef, useEffect } from "react";
 import { PDFDocument } from "pdf-lib";
 import {
   FileUp,
@@ -10,14 +9,6 @@ import {
   Loader2,
   FileText,
 } from "lucide-react";
-
-// Worker setup
-if (typeof window !== "undefined") {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url
-  ).toString();
-}
 
 interface Rect {
   x: number;
@@ -28,40 +19,60 @@ interface Rect {
 
 export default function PdfRedactPage() {
   const [file, setFile] = useState<File | null>(null);
-const [rectanglesByPage, setRectanglesByPage] = useState<{
-  [page: number]: Rect[];
-}>({});
+  const [rectanglesByPage, setRectanglesByPage] = useState<{
+    [page: number]: Rect[];
+  }>({});
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState({ x: 0, y: 0 });
   const [loading, setLoading] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [tool, setTool] = useState<"redact" | "erase">("redact");
 
-
   const canvasRef = useRef<HTMLCanvasElement>(null);
-const [pdfDoc, setPdfDoc] = useState<any>(null);
-const [pageNumber, setPageNumber] = useState(1);
-const rectangles = rectanglesByPage[pageNumber] || [];
-const [totalPages, setTotalPages] = useState(0);
+  const [pdfDoc, setPdfDoc] = useState<any>(null);
+  const [pageNumber, setPageNumber] = useState(1);
+  const rectangles = rectanglesByPage[pageNumber] || [];
+  const [totalPages, setTotalPages] = useState(0);
+  const pdfjsRef = useRef<typeof import("pdfjs-dist") | null>(null);
+
+  // Load pdfjs-dist dynamically (client-only to avoid SSR crash)
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPdfJs = async () => {
+      const pdfjsLib = await import("pdfjs-dist");
+      if (cancelled) return;
+
+      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+        "pdfjs-dist/build/pdf.worker.min.mjs",
+        import.meta.url
+      ).toString();
+
+      pdfjsRef.current = pdfjsLib;
+    };
+
+    loadPdfJs();
+    return () => { cancelled = true; };
+  }, []);
 
   // Load PDF
   const loadPDF = async (selectedFile: File) => {
+    if (!pdfjsRef.current) return; // Wait until pdfjs is loaded
+
     setFile(selectedFile);
     setRectanglesByPage({});
 
-
     const arrayBuffer = await selectedFile.arrayBuffer();
 
-    const pdf = await pdfjsLib.getDocument({
-  data: arrayBuffer,
-}).promise;
+    const pdf = await pdfjsRef.current.getDocument({
+      data: arrayBuffer,
+    }).promise;
 
-setPdfDoc(pdf);
-setTotalPages(pdf.numPages);
-setPageNumber(1);
+    setPdfDoc(pdf);
+    setTotalPages(pdf.numPages);
+    setPageNumber(1);
 
-await renderPage(pdf, 1);
-
+    await renderPage(pdf, 1);
   };
 
   // File input change
@@ -111,15 +122,16 @@ await renderPage(pdf, 1);
     await page.render({
       canvasContext: context,
       viewport,
+      canvas,
     }).promise;
   };
 
   const goToNextPage = async () => {
-  if (!pdfDoc || pageNumber >= totalPages) return;
+    if (!pdfDoc || pageNumber >= totalPages) return;
 
-  const nextPage = pageNumber + 1;
-  setPageNumber(nextPage);
-  await renderPage(pdfDoc, nextPage);
+    const nextPage = pageNumber + 1;
+    setPageNumber(nextPage);
+    await renderPage(pdfDoc, nextPage);
 };
 
 const goToPrevPage = async () => {
@@ -216,58 +228,96 @@ const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
 
   // Redact
   const handleRedactPDF = async () => {
-    if (!canvasRef.current) return;
+  if (!file) return;
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
+  try {
+    const arrayBuffer = await file.arrayBuffer();
 
-      if (!ctx) return;
+    // Load original PDF
+    const originalPdf = await pdfjsLib.getDocument({
+      data: arrayBuffer,
+    }).promise;
 
-      rectangles.forEach((rect) => {
-        ctx.fillStyle = "black";
-        ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+    // Create new PDF
+    const newPdf = await PDFDocument.create();
+
+    const tempCanvas = document.createElement("canvas");
+    const tempCtx = tempCanvas.getContext("2d");
+
+    if (!tempCtx) return;
+
+    // Process ALL pages
+    for (let i = 1; i <= originalPdf.numPages; i++) {
+      const page = await originalPdf.getPage(i);
+
+      const viewport = page.getViewport({ scale: 1.5 });
+
+      tempCanvas.width = viewport.width;
+      tempCanvas.height = viewport.height;
+
+      // Render page
+      await page.render({
+        canvasContext: tempCtx,
+        viewport,
+        canvas: tempCanvas,
+      }).promise;
+
+      // Apply redactions for this page
+      const rects = rectanglesByPage[i] || [];
+
+      rects.forEach((rect) => {
+        tempCtx.fillStyle = "black";
+        tempCtx.fillRect(
+          rect.x,
+          rect.y,
+          rect.width,
+          rect.height
+        );
       });
 
-      const imageDataUrl = canvas.toDataURL("image/png");
+      // Convert page to image
+      const imageDataUrl = tempCanvas.toDataURL("image/png");
 
-      const pdfDoc = await PDFDocument.create();
-      const page = pdfDoc.addPage([
-        canvas.width,
-        canvas.height,
+      const pngImage = await newPdf.embedPng(imageDataUrl);
+
+      const newPage = newPdf.addPage([
+        viewport.width,
+        viewport.height,
       ]);
 
-      const pngImage = await pdfDoc.embedPng(imageDataUrl);
-
-      page.drawImage(pngImage, {
+      newPage.drawImage(pngImage, {
         x: 0,
         y: 0,
-        width: canvas.width,
-        height: canvas.height,
+        width: viewport.width,
+        height: viewport.height,
       });
-
-      const pdfBytes = await pdfDoc.save();
-
-      const blob = new Blob([new Uint8Array(pdfBytes)], {
-        type: "application/pdf",
-      });
-
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "redacted-secure.pdf";
-      a.click();
-
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(err);
     }
 
-    setLoading(false);
-  };
+    // Save PDF
+    const pdfBytes = await newPdf.save();
+
+    const blob = new Blob([new Uint8Array(pdfBytes)], {
+      type: "application/pdf",
+    });
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "redacted-secure.pdf";
+    a.click();
+
+    URL.revokeObjectURL(url);
+
+  } catch (err) {
+    console.error(err);
+  }
+
+  setLoading(false);
+};
+
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-4">
@@ -325,82 +375,100 @@ const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
           {file.name}
         </div>
       )}
-      {/* Tool selector */}
+{/* Tool selector */}
 {file && (
-  <div className="flex gap-3 mt-4">
+  <div className="mt-6 flex flex-wrap gap-3 bg-gray-50 p-3 rounded-2xl border">
+
     <button
       onClick={() => setTool("redact")}
-      className={`px-4 py-2 rounded ${
+      className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition ${
         tool === "redact"
-          ? "bg-indigo-600 text-white"
-          : "bg-gray-200"
+          ? "bg-indigo-600 text-white shadow"
+          : "bg-white text-gray-700 hover:bg-gray-100 border"
       }`}
     >
-      Redact Tool
+      <Shield className="w-4 h-4" />
+      Redact
     </button>
 
     <button
       onClick={() => setTool("erase")}
-      className={`px-4 py-2 rounded ${
+      className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition ${
         tool === "erase"
-          ? "bg-red-600 text-white"
-          : "bg-gray-200"
+          ? "bg-red-600 text-white shadow"
+          : "bg-white text-gray-700 hover:bg-gray-100 border"
       }`}
     >
-      Eraser Tool
+      Eraser
     </button>
+
   </div>
 )}
 
-<div className="flex justify-between items-center mt-4">
-  <button
-    onClick={goToPrevPage}
-    disabled={pageNumber <= 1}
-    className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-  >
-    Previous
-  </button>
 
-  <span>
-    Page {pageNumber} of {totalPages}
-  </span>
+{/* Page Navigation */}
+{file && (
+  <div className="mt-6 flex items-center justify-between bg-white border rounded-2xl px-4 py-3 shadow-sm">
 
-  <button
-    onClick={goToNextPage}
-    disabled={pageNumber >= totalPages}
-    className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-  >
-    Next
-  </button>
-</div>
+    <button
+      onClick={goToPrevPage}
+      disabled={pageNumber <= 1}
+      className="px-4 py-2 rounded-xl border bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
+    >
+      ← Previous
+    </button>
 
-      {/* Canvas */}
-      {file && (
-        <div className="mt-6 border rounded-xl shadow overflow-auto relative">
-          <canvas
-            ref={canvasRef}
-            className="max-w-full"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-          />
+    <div className="text-sm font-medium text-gray-700">
+      Page <span className="text-indigo-600">{pageNumber}</span> of {totalPages}
+    </div>
 
-          {rectangles.map((rect, index) => (
-            <div
-              key={index}
-              style={{
-                position: "absolute",
-                pointerEvents: "none",
-                left: rect.x,
-                top: rect.y,
-                width: rect.width,
-                height: rect.height,
-                backgroundColor: "black",
-              }}
-            />
-          ))}
-        </div>
-      )}
+    <button
+      onClick={goToNextPage}
+      disabled={pageNumber >= totalPages}
+      className="px-4 py-2 rounded-xl border bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
+    >
+      Next →
+    </button>
+
+  </div>
+)}
+
+
+{/* Canvas */}
+{file && (
+  <div className="mt-6 bg-white border rounded-2xl shadow-sm p-4">
+
+    <div className="relative overflow-auto rounded-xl border bg-gray-50 flex justify-center">
+
+      <canvas
+        ref={canvasRef}
+        className="max-w-full rounded-lg shadow"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+      />
+
+      {rectangles.map((rect, index) => (
+        <div
+          key={index}
+          style={{
+            position: "absolute",
+            pointerEvents: "none",
+            left: rect.x,
+            top: rect.y,
+            width: rect.width,
+            height: rect.height,
+            backgroundColor: "black",
+            borderRadius: "4px",
+          }}
+        />
+      ))}
+
+    </div>
+
+  </div>
+)}
+
 
       {/* Button */}
       {file && (

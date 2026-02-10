@@ -2,30 +2,49 @@
 
 import {
   ArrowLeft,
-  FileText,
   Upload,
   Combine,
   Scissors,
   FileUp,
+  Loader2,
 } from "lucide-react";
 
 import { ToolCard } from "@/components/ToolCard";
 import { useRouter, useParams } from "next/navigation";
-import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { storeFile } from "@/lib/fileStore";
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export default function ToolUploadPage() {
   const router = useRouter();
   const params = useParams();
-  const toolId = params.id as string;
+
+  const toolId = Array.isArray(params.id)
+    ? params.id[0]
+    : (params.id as string);
 
   const [hasUnsavedWork, setHasUnsavedWork] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Warn before refresh
+  /* --------------------------------------------
+     Remember last-used tool
+  --------------------------------------------- */
+  useEffect(() => {
+    if (toolId && toolId !== "pdf-tools") {
+      localStorage.setItem("lastUsedTool", toolId);
+      localStorage.removeItem("hideResume");
+    }
+  }, [toolId]);
+
+  /* --------------------------------------------
+     Warn before refresh / tab close
+  --------------------------------------------- */
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!hasUnsavedWork) return;
@@ -34,29 +53,13 @@ export default function ToolUploadPage() {
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () =>
-      window.removeEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedWork]);
-
-  const getToolTitle = () => {
-    switch (toolId) {
-      case "document-to-pdf":
-        return "Upload document to convert";
-      case "ocr":
-        return "Upload image for text extraction";
-      default:
-        return "Upload your file";
-    }
-  };
 
   const getSupportedTypes = () => {
     switch (toolId) {
-      case "document-to-pdf":
-        return [".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx"];
       case "ocr":
         return [".jpg", ".jpeg", ".png"];
-      case "pdf-tools":
       case "pdf-merge":
       case "pdf-split":
       case "pdf-protect":
@@ -67,24 +70,32 @@ export default function ToolUploadPage() {
     }
   };
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const allowedTypes = getSupportedTypes();
-    const extension =
-      "." + file.name.split(".").pop()?.toLowerCase();
+    const allowed = getSupportedTypes();
+    const ext = "." + file.name.split(".").pop()?.toLowerCase();
 
-    if (allowedTypes.length && !allowedTypes.includes(extension)) {
+    if (allowed.length && !allowed.includes(ext)) {
+      setFileError(`Unsupported file type. Allowed: ${allowed.join(", ")}`);
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
       setFileError(
-        `Unsupported file type. Allowed: ${allowedTypes.join(", ")}`
+        `File is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max allowed: 10MB.`
       );
+      e.target.value = "";
       return;
     }
 
     setFileError(null);
     setSelectedFile(file);
     setHasUnsavedWork(true);
+    
+    // Don't auto-navigate - let user click "Process File" button
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -103,104 +114,139 @@ export default function ToolUploadPage() {
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
 
+    const allowedTypes = getSupportedTypes();
+    const extension = "." + file.name.split(".").pop()?.toLowerCase();
+
+    if (allowedTypes.length && !allowedTypes.includes(extension)) {
+      setFileError(
+        `Unsupported file type. Allowed: ${allowedTypes.join(", ")}`
+      );
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      setFileError(
+        `File is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max allowed: 10MB.`
+      );
+      return;
+    }
+
+    setFileError(null);
     setSelectedFile(file);
     setHasUnsavedWork(true);
+  };
+
+  const handleClickUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleProcessFile = async () => {
+    if (!selectedFile) return;
+
+    setIsProcessing(true);
+    setFileError(null);
+
+    try {
+      const success = await storeFile(selectedFile);
+      if (success) {
+        router.push(`/tool/${toolId}/processing`);
+      } else {
+        setFileError("Failed to process file. Please try again.");
+      }
+    } catch (err) {
+      setFileError("An error occurred while processing the file.");
+      console.error(err);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleBackNavigation = () => {
     if (hasUnsavedWork) {
       const confirmLeave = window.confirm(
-        "You have unsaved work. Leave?"
+        "You have unsaved work. Are you sure you want to leave?"
       );
       if (!confirmLeave) return;
     }
-
     router.push("/dashboard");
   };
 
-  // PDF tools page
+  /* --------------------------------------------
+     PDF TOOLS LANDING PAGE
+  --------------------------------------------- */
   if (toolId === "pdf-tools") {
     return (
       <div className="min-h-screen flex flex-col">
-
-        <div className="container mx-auto px-6 pt-6">
-          <button
-            onClick={handleBackNavigation}
-            className="flex items-center gap-2 text-sm"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
-        </div>
-
-        <main className="container mx-auto px-6 py-12">
-
-          <h1 className="text-3xl font-semibold mb-6">
-            PDF Tools
-          </h1>
+        <main className="flex-1 container mx-auto px-6 py-12 md:px-12">
+          <h1 className="text-3xl font-semibold mb-2">PDF Tools</h1>
+          <p className="text-muted-foreground mb-12">
+            Choose a PDF tool
+          </p>
 
           <div className="grid gap-6 md:grid-cols-2 max-w-5xl">
-
             <ToolCard
               icon={Combine}
               title="Merge PDF"
-              description="Combine PDFs"
+              description="Combine multiple PDFs"
               href="/dashboard/pdf-merge"
             />
-
             <ToolCard
               icon={Scissors}
               title="Split PDF"
-              description="Split PDF"
+              description="Split PDF pages"
               href="/dashboard/pdf-split"
             />
-
             <ToolCard
               icon={FileUp}
               title="Document to PDF"
-              description="Convert document"
+              description="Convert documents to PDF"
               href="/dashboard/document-to-pdf"
             />
-
           </div>
-
         </main>
       </div>
     );
   }
 
-  // Upload page
+  /* --------------------------------------------
+     GENERIC UPLOAD PAGE
+  --------------------------------------------- */
   return (
     <div className="min-h-screen flex flex-col">
-
-      <main className="container mx-auto px-6 py-12">
-
+      <main className="flex-1 container mx-auto px-6 py-12 md:px-12">
         <button
           onClick={handleBackNavigation}
-          className="flex items-center gap-2 mb-6"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back
+          Back to Dashboard
         </button>
 
-        <h1 className="text-3xl font-semibold mb-8">
-          {getToolTitle()}
+        <h1 className="text-3xl font-semibold mb-12">
+          Upload your file
         </h1>
 
         <motion.div
+          onClick={handleClickUpload}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className="border-2 border-dashed rounded-xl p-20 text-center"
+          className={`border-2 border-dashed rounded-xl p-20 text-center cursor-pointer transition-colors ${
+            isDraggingOver ? "border-blue-500 bg-blue-50" : "hover:border-gray-400"
+          }`}
         >
 
           <Upload className="mx-auto mb-4" />
 
-          <p>Drag & drop or click</p>
+          <p>Drag & drop or click to browse</p>
+          <p className="text-sm text-gray-500 mt-2">
+            Supported: {getSupportedTypes().join(", ")}
+          </p>
 
           <input
             type="file"
             ref={fileInputRef}
+            accept={getSupportedTypes().join(",")}
             className="hidden"
             onChange={handleFile}
           />
@@ -210,28 +256,42 @@ export default function ToolUploadPage() {
         {selectedFile && (
           <div className="mt-4">
 
-            <p>{selectedFile.name}</p>
+            <p className="font-medium">{selectedFile.name}</p>
+            <p className="text-sm text-gray-500">
+              {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+            </p>
 
             <button
-              onClick={() =>
-                router.push(`/tool/${toolId}/processing`)
-              }
-              className="mt-2 px-4 py-2 bg-black text-white rounded"
+              onClick={handleProcessFile}
+              disabled={isProcessing}
+              className="mt-3 px-4 py-2 bg-black text-white rounded disabled:opacity-50 flex items-center gap-2"
             >
-              Process File
+              {isProcessing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Process File"
+              )}
             </button>
-
           </div>
         )}
 
         {fileError && (
-          <p className="text-red-500 mt-2">
-            {fileError}
-          </p>
+          <p className="mt-3 text-sm text-red-600">{fileError}</p>
         )}
 
+        <div className="flex justify-between text-xs text-muted-foreground mt-4">
+          <span>
+            Supported formats:{" "}
+            {getSupportedTypes().length
+              ? getSupportedTypes().join(", ")
+              : "—"}
+          </span>
+          <span>Max file size: 10MB</span>
+        </div>
       </main>
-
     </div>
   );
 }
