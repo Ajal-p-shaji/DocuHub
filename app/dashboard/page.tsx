@@ -1,6 +1,7 @@
 "use client";
 import { FileText, ArrowLeftRight, ScanText, LayoutGrid } from "lucide-react";
 import { ToolCard } from "@/components/ToolCard";
+import RecentFiles from "@/components/RecentFiles"; // ✅ ADDED
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -94,6 +95,9 @@ export default function Dashboard() {
             disabled={false}
           />
         </div>
+
+        {/* ✅ RECENT FILES SECTION ADDED */}
+        <RecentFiles />
 
       </main>
       {/* Footer is now in layout.tsx */}
