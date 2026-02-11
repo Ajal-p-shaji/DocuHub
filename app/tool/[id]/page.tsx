@@ -1,4 +1,5 @@
 "use client";
+import { Minimize2 } from "lucide-react";
 
 import {
   ArrowLeft,
@@ -200,11 +201,48 @@ export default function ToolUploadPage() {
           <p className="text-muted-foreground mb-12">Choose a PDF tool</p>
 
           <div className="grid gap-6 md:grid-cols-2 max-w-5xl">
-            <ToolCard icon={Combine} title="Merge PDF" description="Combine multiple PDFs" href="/dashboard/pdf-merge" />
-            <ToolCard icon={Scissors} title="Split PDF" description="Split PDF pages" href="/dashboard/pdf-split" />
-            <ToolCard icon={FileText} title="Redact PDF" description="Securely hide sensitive information" href="/tool/pdf-redact" />
-            <ToolCard icon={FileText} title="Protect PDF" description="Add password protection to PDF" href="/tool/pdf-protect" />
-            <ToolCard icon={FileUp} title="Document to PDF" description="Convert documents to PDF" href="/dashboard/document-to-pdf" />
+<ToolCard
+  icon={Combine}
+  title="Merge PDF"
+  description="Combine multiple PDFs"
+  href="/dashboard/pdf-merge"
+/>
+
+<ToolCard
+  icon={Minimize2}
+  title="Compress PDF"
+  description="Reduce PDF file size"
+  href="/tool/pdf-compress"
+/>
+
+<ToolCard
+  icon={Scissors}
+  title="Split PDF"
+  description="Split PDF pages"
+  href="/dashboard/pdf-split"
+/>
+
+<ToolCard
+  icon={FileText}
+  title="Redact PDF"
+  description="Securely hide sensitive information"
+  href="/tool/pdf-redact"
+/>
+
+<ToolCard
+  icon={FileText}
+  title="Protect PDF"
+  description="Add password protection to PDF"
+  href="/tool/pdf-protect"
+/>
+
+<ToolCard
+  icon={FileUp}
+  title="Document to PDF"
+  description="Convert documents to PDF"
+  href="/dashboard/document-to-pdf"
+/>
+
           </div>
         </main>
       </div>
