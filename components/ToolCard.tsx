@@ -36,7 +36,13 @@ export function ToolCard({ icon: Icon, title, description, href, disabled, activ
                 </div>
             </div>
 
-            <ArrowRight className="h-5 w-5 text-[#1e1e2e] opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
-        </Link>
-    );
+        <div>
+          <h3 className="text-lg font-medium text-[#1e1e2e]">{title}</h3>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+      </div>
+
+      <ArrowRight className="h-5 w-5 text-[#1e1e2e] opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
+    </Link>
+  );
 }
