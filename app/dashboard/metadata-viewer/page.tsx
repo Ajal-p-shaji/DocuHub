@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileUp, FileText } from 'lucide-react';
 import * as exifr from 'exifr';
 
@@ -8,6 +8,22 @@ import * as exifr from 'exifr';
 export default function MetadataViewerPage() {
   const [file, setFile] = useState<File | null>(null);
   const [metadata, setMetadata] = useState<any>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Manage object URL lifecycle
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl(null);
+      return;
+    }
+
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [file]);
 
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,26 +104,26 @@ export default function MetadataViewerPage() {
           <strong>File Preview:</strong>
 
           {/* Image preview */}
-          {file.type.startsWith("image/") && (
+          {file.type.startsWith("image/") && previewUrl && (
             <img
-              src={URL.createObjectURL(file)}
+              src={previewUrl}
               alt="Preview"
               className="mt-2 rounded-lg max-h-64"
             />
           )}
 
           {/* PDF preview */}
-          {file.type === "application/pdf" && (
+          {file.type === "application/pdf" && previewUrl && (
             <iframe
-              src={URL.createObjectURL(file)}
+              src={previewUrl}
               className="mt-2 w-full h-64 rounded-lg"
             />
           )}
 
           {/* Text preview */}
-          {file.type.startsWith("text/") && (
+          {file.type.startsWith("text/") && previewUrl && (
             <iframe
-              src={URL.createObjectURL(file)}
+              src={previewUrl}
               className="mt-2 w-full h-64 rounded-lg"
             />
           )}

@@ -17,6 +17,7 @@ export default function ProcessingPage() {
   const [extractedText, setExtractedText] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [copied, setCopied] = useState(false);
+  const [compressedPdfData, setCompressedPdfData] = useState<string | null>(null);
 
  useEffect(() => {
   const storedFile = getStoredFile();
@@ -97,8 +98,8 @@ const res = await fetch("/api/compress", {
       { type: "application/pdf" }
     );
 
-    const url = URL.createObjectURL(blob);
-    localStorage.setItem("compressedPDF", url);
+    // Store the base64 data instead of object URL
+    setCompressedPdfData(data.file);
 
     setProgress(100);
     setStatus("done");
@@ -239,12 +240,17 @@ const res = await fetch("/api/compress", {
             {toolId === "pdf-compress" ? (
             <button
   onClick={() => {
-  const url = localStorage.getItem("compressedPDF");
-  if (url) {
+  if (compressedPdfData) {
+    const blob = new Blob(
+      [Uint8Array.from(atob(compressedPdfData), c => c.charCodeAt(0))],
+      { type: "application/pdf" }
+    );
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = "compressed.pdf";
     a.click();
+    URL.revokeObjectURL(url);
   }
 }}
 
