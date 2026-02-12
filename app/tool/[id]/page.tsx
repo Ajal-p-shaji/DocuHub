@@ -192,6 +192,7 @@ export default function ToolUploadPage() {
             <ToolCard icon={Minimize2} title="Compress PDF" description="Reduce PDF file size" href="/tool/pdf-compress" />
             <ToolCard icon={Scissors} title="Split PDF" description="Split PDF pages" href="/dashboard/pdf-split" />
             <ToolCard icon={FileText} title="Protect PDF" description="Add password protection" href="/tool/pdf-protect" />
+            <ToolCard icon={FileText} title="Metadata Viewer" description="View PDF metadata details" href="/dashboard/metadata-viewer" />
             <ToolCard icon={FileUp} title="Document to PDF" description="Convert documents to PDF" href="/dashboard/document-to-pdf" />
           </div>
         </main>
