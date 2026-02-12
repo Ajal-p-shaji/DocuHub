@@ -43,14 +43,12 @@ export default function ToolUploadPage() {
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Persisted metadata only
   const [persistedFileMeta, setPersistedFileMeta] = useState<{
     name: string;
     size: number;
     type: string;
   } | null>(null);
 
-  // Compression level (pdf-compress)
   const [compressionLevel, setCompressionLevel] = useState<
     "low" | "medium" | "high"
   >("medium");
@@ -128,12 +126,11 @@ export default function ToolUploadPage() {
     setHasUnsavedWork(true);
   };
 
-  /* CONFIRMED RESET / CLEAR TOOL */
+  /* REMOVE FILE */
   const handleRemoveFile = () => {
     const confirmed = window.confirm(
-      "This will remove your uploaded file and reset the tool. Do you want to continue?"
+      "This will remove your uploaded file and reset the tool. Continue?"
     );
-
     if (!confirmed) return;
 
     setSelectedFile(null);
@@ -142,9 +139,7 @@ export default function ToolUploadPage() {
     clearToolState(toolId);
     setHasUnsavedWork(false);
 
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   /* PROCESS FILE */
@@ -172,7 +167,7 @@ export default function ToolUploadPage() {
   const handleBackNavigation = () => {
     if (hasUnsavedWork) {
       const confirmLeave = window.confirm(
-        "You have unsaved work. Are you sure you want to leave?"
+        "You have unsaved work. Leave anyway?"
       );
       if (!confirmLeave) return;
     }
@@ -220,7 +215,7 @@ export default function ToolUploadPage() {
             setIsDraggingOver(true);
           }}
           onDragLeave={() => setIsDraggingOver(false)}
-          className={`border-2 border-dashed rounded-xl p-20 text-center cursor-pointer ${
+          className={`border-2 border-dashed rounded-xl p-20 text-center cursor-pointer transition ${
             isDraggingOver
               ? "border-blue-500 bg-blue-50"
               : "hover:border-gray-400 hover:bg-gray-50"
@@ -243,6 +238,8 @@ export default function ToolUploadPage() {
 
         {selectedFile && (
           <div className="mt-6 space-y-4">
+
+            {/* File Preview Card */}
             <div className="flex items-center gap-3 p-4 rounded-xl border bg-white shadow-sm">
               <FileText className="w-8 h-8 text-blue-500" />
 
@@ -258,10 +255,11 @@ export default function ToolUploadPage() {
                 className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
               >
                 <Trash2 className="w-4 h-4" />
-                Clear All
+                Remove
               </button>
             </div>
 
+            {/* Compression Options */}
             {toolId === "pdf-compress" && (
               <div className="border rounded-lg p-4 bg-gray-50">
                 <p className="font-medium mb-3">Compression Level</p>
@@ -278,6 +276,13 @@ export default function ToolUploadPage() {
                     </label>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Processing Feedback */}
+            {isProcessing && (
+              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div className="h-full bg-blue-600 animate-pulse w-full" />
               </div>
             )}
 
