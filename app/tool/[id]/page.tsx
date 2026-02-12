@@ -6,11 +6,15 @@ import { ToolCard } from "@/components/ToolCard";
 import { FileText, Upload } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
-
+ import { useState } from "react";
 export default function ToolUploadPage() {
+   
+const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
     const router = useRouter();
     const params = useParams();
     const toolId = params.id;
+    
     const getToolTitle = () => {
         switch (toolId) {
             case "file-conversion":
@@ -23,6 +27,14 @@ export default function ToolUploadPage() {
                 return "Upload your file";
         }
     };
+const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  setSelectedFile(file);
+};
+const handleRemoveFile = () => {
+  setSelectedFile(null);
+};
 
 
 
@@ -143,6 +155,34 @@ export default function ToolUploadPage() {
                         <span>Supported formats: PDF, JPG, PNG</span>
                         <span>Max file size: 10MB</span>
                     </div>
+
+                    {selectedFile && (
+  <div className="mt-6 flex items-center justify-between rounded-lg border bg-white p-4">
+    <p className="text-sm font-medium text-[#1e1e2e]">
+      Selected file: {selectedFile.name}
+    </p>
+
+    <button
+      onClick={handleRemoveFile}
+      className="text-sm text-red-600 hover:underline"
+    >
+      Remove
+    </button>
+  </div>
+)}
+
+                    <button
+  disabled={!selectedFile}
+  className={`mt-8 w-full py-3 rounded-lg text-sm font-medium transition
+    ${
+      selectedFile
+        ? "bg-black text-white hover:bg-gray-800"
+        : "bg-gray-300 text-gray-500 cursor-not-allowed"
+    }`}
+>
+  Process File
+</button>
+
                 </div>
             </main>
         </div>
