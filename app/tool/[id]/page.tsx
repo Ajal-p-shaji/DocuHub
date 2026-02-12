@@ -49,7 +49,14 @@ export default function ToolUploadPage() {
     type: string;
   } | null>(null);
 
+  const [compressionLevel, setCompressionLevel] = useState<
+    "low" | "medium" | "high"
+  >("medium");
+
   /* Restore persisted state */
+  /* --------------------------------------------
+     Restore persisted state
+  --------------------------------------------- */
   useEffect(() => {
     if (!toolId) return;
     const stored = loadToolState(toolId);
@@ -127,7 +134,6 @@ export default function ToolUploadPage() {
     const confirmed = window.confirm(
       "This will remove your uploaded file and reset the tool. Continue?"
     );
-
     if (!confirmed) return;
 
     setSelectedFile(null);
@@ -136,9 +142,7 @@ export default function ToolUploadPage() {
     clearToolState(toolId);
     setHasUnsavedWork(false);
 
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   /* Process file */
@@ -254,7 +258,7 @@ export default function ToolUploadPage() {
             setIsDraggingOver(true);
           }}
           onDragLeave={() => setIsDraggingOver(false)}
-          className={`border-2 border-dashed rounded-xl p-20 text-center cursor-pointer ${
+          className={`border-2 border-dashed rounded-xl p-20 text-center cursor-pointer transition ${
             isDraggingOver
               ? "border-blue-500 bg-blue-50"
               : "hover:border-gray-400 hover:bg-gray-50"
@@ -277,6 +281,8 @@ export default function ToolUploadPage() {
 
         {selectedFile && (
           <div className="mt-6 space-y-4">
+
+            {/* File Preview Card */}
             <div className="flex items-center gap-3 p-4 rounded-xl border bg-white shadow-sm">
               <FileText className="w-8 h-8 text-blue-500" />
 
@@ -292,9 +298,36 @@ export default function ToolUploadPage() {
                 className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
               >
                 <Trash2 className="w-4 h-4" />
-                Clear All
+                Remove
               </button>
             </div>
+
+            {/* Compression Options */}
+            {toolId === "pdf-compress" && (
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <p className="font-medium mb-3">Compression Level</p>
+                <div className="space-y-2 text-sm">
+                  {(["low", "medium", "high"] as const).map((level) => (
+                    <label key={level} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        checked={compressionLevel === level}
+                        onChange={() => setCompressionLevel(level)}
+                        className="accent-blue-600"
+                      />
+                      {level.charAt(0).toUpperCase() + level.slice(1)} Compression
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Processing Feedback */}
+            {isProcessing && (
+              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div className="h-full bg-blue-600 animate-pulse w-full" />
+              </div>
+            )}
 
             <button
               onClick={handleProcessFile}
