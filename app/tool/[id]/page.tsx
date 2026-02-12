@@ -10,7 +10,7 @@ import {
   Loader2,
   FileText,
   Minimize2,
-  X,
+  Trash2,
 } from "lucide-react";
 
 import { ToolCard } from "@/components/ToolCard";
@@ -25,7 +25,7 @@ import {
   clearToolState,
 } from "@/lib/toolStateStorage";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 export default function ToolUploadPage() {
   const router = useRouter();
@@ -35,40 +35,44 @@ export default function ToolUploadPage() {
     ? params.id[0]
     : (params.id as string);
 
-  const [hasUnsavedWork, setHasUnsavedWork] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasUnsavedWork, setHasUnsavedWork] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Persisted metadata only
   const [persistedFileMeta, setPersistedFileMeta] = useState<{
     name: string;
     size: number;
     type: string;
   } | null>(null);
 
+  // Compression level (pdf-compress)
+  const [compressionLevel, setCompressionLevel] = useState<
+    "low" | "medium" | "high"
+  >("medium");
+
   /* Restore persisted state */
   useEffect(() => {
     if (!toolId) return;
     const stored = loadToolState(toolId);
-    if (stored?.fileMeta) {
-      setPersistedFileMeta(stored.fileMeta);
-    }
+    if (stored?.fileMeta) setPersistedFileMeta(stored.fileMeta);
   }, [toolId]);
 
   /* Persist state */
   useEffect(() => {
-    if (!toolId) return;
-    if (selectedFile) {
-      saveToolState(toolId, {
-        fileMeta: {
-          name: selectedFile.name,
-          size: selectedFile.size,
-          type: selectedFile.type,
-        },
-      });
-    }
+    if (!toolId || !selectedFile) return;
+
+    saveToolState(toolId, {
+      fileMeta: {
+        name: selectedFile.name,
+        size: selectedFile.size,
+        type: selectedFile.type,
+      },
+    });
   }, [toolId, selectedFile]);
 
   /* Warn before refresh */
@@ -114,9 +118,7 @@ export default function ToolUploadPage() {
 
     if (file.size > MAX_FILE_SIZE) {
       setFileError(
-        `File too large (${(file.size / 1024 / 1024).toFixed(
-          1
-        )}MB). Max 10MB.`
+        `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 10MB.`
       );
       return;
     }
@@ -126,12 +128,23 @@ export default function ToolUploadPage() {
     setHasUnsavedWork(true);
   };
 
-  /* REMOVE FILE */
+  /* CONFIRMED RESET / CLEAR TOOL */
   const handleRemoveFile = () => {
+    const confirmed = window.confirm(
+      "This will remove your uploaded file and reset the tool. Do you want to continue?"
+    );
+
+    if (!confirmed) return;
+
     setSelectedFile(null);
     setPersistedFileMeta(null);
+    setFileError(null);
     clearToolState(toolId);
     setHasUnsavedWork(false);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   /* PROCESS FILE */
@@ -156,6 +169,16 @@ export default function ToolUploadPage() {
     }
   };
 
+  const handleBackNavigation = () => {
+    if (hasUnsavedWork) {
+      const confirmLeave = window.confirm(
+        "You have unsaved work. Are you sure you want to leave?"
+      );
+      if (!confirmLeave) return;
+    }
+    router.push("/dashboard");
+  };
+
   /* PDF TOOLS PAGE */
   if (toolId === "pdf-tools") {
     return (
@@ -165,36 +188,11 @@ export default function ToolUploadPage() {
           <p className="text-muted-foreground mb-12">Choose a PDF tool</p>
 
           <div className="grid gap-6 md:grid-cols-2 max-w-5xl">
-            <ToolCard
-              icon={Combine}
-              title="Merge PDF"
-              description="Combine multiple PDFs"
-              href="/dashboard/pdf-merge"
-            />
-            <ToolCard
-              icon={Minimize2}
-              title="Compress PDF"
-              description="Reduce PDF file size"
-              href="/tool/pdf-compress"
-            />
-            <ToolCard
-              icon={Scissors}
-              title="Split PDF"
-              description="Split PDF pages"
-              href="/dashboard/pdf-split"
-            />
-            <ToolCard
-              icon={FileText}
-              title="Protect PDF"
-              description="Add password protection"
-              href="/tool/pdf-protect"
-            />
-            <ToolCard
-              icon={FileUp}
-              title="Document to PDF"
-              description="Convert documents to PDF"
-              href="/dashboard/document-to-pdf"
-            />
+            <ToolCard icon={Combine} title="Merge PDF" description="Combine multiple PDFs" href="/dashboard/pdf-merge" />
+            <ToolCard icon={Minimize2} title="Compress PDF" description="Reduce PDF file size" href="/tool/pdf-compress" />
+            <ToolCard icon={Scissors} title="Split PDF" description="Split PDF pages" href="/dashboard/pdf-split" />
+            <ToolCard icon={FileText} title="Protect PDF" description="Add password protection" href="/tool/pdf-protect" />
+            <ToolCard icon={FileUp} title="Document to PDF" description="Convert documents to PDF" href="/dashboard/document-to-pdf" />
           </div>
         </main>
       </div>
@@ -205,19 +203,17 @@ export default function ToolUploadPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <main className="container mx-auto px-6 py-12 md:px-12">
-        <Link
-          href="/dashboard"
+        <button
+          onClick={handleBackNavigation}
           className="inline-flex items-center gap-2 text-sm mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Dashboard
-        </Link>
+        </button>
 
         <h1 className="text-3xl font-semibold mb-8">Upload your file</h1>
 
         <motion.div
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.99 }}
           onClick={() => fileInputRef.current?.click()}
           onDragOver={(e) => {
             e.preventDefault();
@@ -251,9 +247,7 @@ export default function ToolUploadPage() {
               <FileText className="w-8 h-8 text-blue-500" />
 
               <div className="flex-1">
-                <p className="font-medium text-gray-900">
-                  {selectedFile.name}
-                </p>
+                <p className="font-medium">{selectedFile.name}</p>
                 <p className="text-sm text-gray-500">
                   {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                 </p>
@@ -261,30 +255,42 @@ export default function ToolUploadPage() {
 
               <button
                 onClick={handleRemoveFile}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition"
+                className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
               >
-                <X className="w-4 h-4" />
-                Remove
+                <Trash2 className="w-4 h-4" />
+                Clear All
               </button>
-
-              {isProcessing && (
-                <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-              )}
             </div>
 
-            {isProcessing && (
-              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                <div className="h-full bg-blue-600 animate-pulse w-full" />
+            {toolId === "pdf-compress" && (
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <p className="font-medium mb-3">Compression Level</p>
+                <div className="space-y-2 text-sm">
+                  {(["low", "medium", "high"] as const).map((level) => (
+                    <label key={level} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        checked={compressionLevel === level}
+                        onChange={() => setCompressionLevel(level)}
+                        className="accent-blue-600"
+                      />
+                      {level.charAt(0).toUpperCase() + level.slice(1)} Compression
+                    </label>
+                  ))}
+                </div>
               </div>
             )}
 
             <button
               onClick={handleProcessFile}
               disabled={isProcessing}
-              className="mt-3 px-4 py-2 bg-black text-white rounded flex items-center gap-2"
+              className="px-5 py-2.5 bg-black text-white rounded-lg flex items-center gap-2 disabled:opacity-60"
             >
               {isProcessing ? (
-                <Loader2 className="animate-spin" />
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Processing...
+                </>
               ) : (
                 "Process File"
               )}
@@ -292,9 +298,7 @@ export default function ToolUploadPage() {
           </div>
         )}
 
-        {fileError && (
-          <p className="mt-3 text-sm text-red-600">{fileError}</p>
-        )}
+        {fileError && <p className="mt-3 text-sm text-red-600">{fileError}</p>}
       </main>
     </div>
   );
