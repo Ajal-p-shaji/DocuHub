@@ -53,14 +53,14 @@ export default function ToolUploadPage() {
     type: string;
   } | null>(null);
 
-  /* ---------------- Restore persisted state ---------------- */
+  /* Restore persisted state */
   useEffect(() => {
     if (!toolId) return;
     const stored = loadToolState(toolId);
     if (stored?.fileMeta) setPersistedFileMeta(stored.fileMeta);
   }, [toolId]);
 
-  /* ---------------- Persist state ---------------- */
+  /* Persist state */
   useEffect(() => {
     if (!toolId || !selectedFile) return;
 
@@ -73,7 +73,7 @@ export default function ToolUploadPage() {
     });
   }, [toolId, selectedFile]);
 
-  /* ---------------- Warn before refresh ---------------- */
+  /* Warn before refresh */
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!hasUnsavedWork) return;
@@ -86,7 +86,6 @@ export default function ToolUploadPage() {
       window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedWork]);
 
-  /* ---------------- Supported Types ---------------- */
   const getSupportedTypes = () => {
     switch (toolId) {
       case "ocr":
@@ -94,7 +93,6 @@ export default function ToolUploadPage() {
       case "pdf-merge":
       case "pdf-split":
       case "pdf-protect":
-      case "pdf-redact":
       case "pdf-compress":
         return [".pdf"];
       default:
@@ -102,7 +100,7 @@ export default function ToolUploadPage() {
     }
   };
 
-  /* ---------------- Handle File ---------------- */
+  /* Handle file select */
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -116,9 +114,7 @@ export default function ToolUploadPage() {
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      setFileError(
-        `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 10MB.`
-      );
+      setFileError("File too large. Max size is 10MB.");
       return;
     }
 
@@ -127,10 +123,10 @@ export default function ToolUploadPage() {
     setHasUnsavedWork(true);
   };
 
-  /* ---------------- Remove File ---------------- */
+  /* Remove file */
   const handleRemoveFile = () => {
     const confirmed = window.confirm(
-      "This will remove your uploaded file and reset the tool. Continue?"
+      "This will remove your uploaded file. Continue?"
     );
     if (!confirmed) return;
 
@@ -144,12 +140,12 @@ export default function ToolUploadPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  /* ---------------- Replace File ---------------- */
+  /* Replace file */
   const handleReplaceFile = () => {
     fileInputRef.current?.click();
   };
 
-  /* ---------------- Process File ---------------- */
+  /* Process file */
   const handleProcessFile = async () => {
     if (!selectedFile) return;
 
@@ -180,7 +176,6 @@ export default function ToolUploadPage() {
     }
   };
 
-  /* ---------------- Back Navigation ---------------- */
   const handleBackNavigation = () => {
     if (hasUnsavedWork) {
       const confirmLeave = window.confirm(
@@ -191,9 +186,7 @@ export default function ToolUploadPage() {
     router.push("/dashboard");
   };
 
-  /* =========================================================
-     PDF TOOLS PAGE
-  ========================================================= */
+  /* PDF TOOLS PAGE */
   if (toolId === "pdf-tools") {
     return (
       <div className="min-h-screen flex flex-col">
@@ -213,9 +206,7 @@ export default function ToolUploadPage() {
     );
   }
 
-  /* =========================================================
-     UPLOAD PAGE
-  ========================================================= */
+  /* UPLOAD PAGE */
   return (
     <div className="min-h-screen flex flex-col">
       <main className="container mx-auto px-6 py-12 md:px-12">
@@ -236,7 +227,7 @@ export default function ToolUploadPage() {
             setIsDraggingOver(true);
           }}
           onDragLeave={() => setIsDraggingOver(false)}
-          className={`border-2 border-dashed rounded-xl p-20 text-center cursor-pointer transition ${
+          className={`border-2 border-dashed rounded-xl p-20 text-center cursor-pointer ${
             isDraggingOver
               ? "border-blue-500 bg-blue-50"
               : "hover:border-gray-400 hover:bg-gray-50"
@@ -257,6 +248,13 @@ export default function ToolUploadPage() {
           />
         </motion.div>
 
+        {/* Empty-state hint */}
+        {!selectedFile && (
+          <p className="mt-6 text-sm text-muted-foreground text-center">
+            No file selected. Upload a file to continue.
+          </p>
+        )}
+
         {selectedFile && (
           <div className="mt-6 space-y-4">
             <div className="flex items-center gap-3 p-4 rounded-xl border bg-white shadow-sm">
@@ -269,18 +267,17 @@ export default function ToolUploadPage() {
               </div>
 
               <button
-                onClick={handleRemoveFile}
-                className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
+                onClick={handleReplaceFile}
+                className="text-sm text-blue-600 hover:underline"
               >
-                <Trash2 className="w-4 h-4" />
-                Remove
+                Replace
               </button>
 
               <button
-                onClick={handleReplaceFile}
-                className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50"
+                onClick={handleRemoveFile}
+                className="text-sm text-red-600 hover:underline"
               >
-                Replace File
+                Remove
               </button>
             </div>
 
@@ -293,7 +290,6 @@ export default function ToolUploadPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
                   className="w-full border rounded-lg px-3 py-2 text-sm"
                 />
               </div>
