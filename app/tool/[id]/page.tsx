@@ -281,12 +281,13 @@ export default function ToolUploadPage() {
                 </p>
               </div>
 
-              <button
-                onClick={handleRemoveFile}
-                className="p-2 hover:bg-red-50 rounded-lg transition"
-              >
-                <X className="w-5 h-5 text-red-500" />
-              </button>
+<button
+  onClick={handleRemoveFile}
+  className="px-3 py-1 text-sm bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition"
+>
+  Remove
+</button>
+
 
               {isProcessing && (
                 <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
