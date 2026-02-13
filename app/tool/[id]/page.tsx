@@ -21,7 +21,7 @@ import {
   clearToolState,
 } from "@/lib/toolStateStorage";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 export default function ToolUploadPage() {
   const router = useRouter();
@@ -37,6 +37,10 @@ export default function ToolUploadPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasUnsavedWork, setHasUnsavedWork] = useState(false);
 
+  /* ✅ NEW — Watermark States */
+  const [watermarkText, setWatermarkText] = useState("");
+  const [rotationAngle, setRotationAngle] = useState(45);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [persistedFileMeta, setPersistedFileMeta] = useState<{
@@ -45,14 +49,12 @@ export default function ToolUploadPage() {
     type: string;
   } | null>(null);
 
-  /* ---------------- Restore persisted state ---------------- */
   useEffect(() => {
     if (!toolId) return;
     const stored = loadToolState(toolId);
     if (stored?.fileMeta) setPersistedFileMeta(stored.fileMeta);
   }, [toolId]);
 
-  /* ---------------- Persist state ---------------- */
   useEffect(() => {
     if (!toolId || !selectedFile) return;
 
@@ -65,7 +67,6 @@ export default function ToolUploadPage() {
     });
   }, [toolId, selectedFile]);
 
-  /* ---------------- Warn before refresh ---------------- */
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!hasUnsavedWork) return;
@@ -78,7 +79,6 @@ export default function ToolUploadPage() {
       window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedWork]);
 
-  /* ---------------- Supported Types ---------------- */
   const getSupportedTypes = () => {
     switch (toolId) {
       case "ocr":
@@ -87,13 +87,13 @@ export default function ToolUploadPage() {
       case "pdf-split":
       case "pdf-protect":
       case "pdf-compress":
+      case "pdf-watermark":
         return [".pdf"];
       default:
         return [];
     }
   };
 
-  /* ---------------- File Icon ---------------- */
   const getFileIcon = (file: File) => {
     const ext = file.name.split(".").pop()?.toLowerCase();
 
@@ -108,7 +108,6 @@ export default function ToolUploadPage() {
     return <FileText className="w-6 h-6 text-gray-400" />;
   };
 
-  /* ---------------- File Select ---------------- */
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -131,7 +130,6 @@ export default function ToolUploadPage() {
     setHasUnsavedWork(true);
   };
 
-  /* ---------------- Remove File ---------------- */
   const handleRemoveFile = () => {
     const confirmed = window.confirm(
       "This will remove your uploaded file. Continue?"
@@ -147,12 +145,10 @@ export default function ToolUploadPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  /* ---------------- Replace File ---------------- */
   const handleReplaceFile = () => {
     fileInputRef.current?.click();
   };
 
-  /* ---------------- Process File ---------------- */
   const handleProcessFile = async () => {
     if (!selectedFile) return;
 
@@ -162,6 +158,11 @@ export default function ToolUploadPage() {
       const ok = await storeFile(selectedFile);
 
       if (ok) {
+        if (toolId === "pdf-watermark") {
+          localStorage.setItem("watermarkRotation", rotationAngle.toString());
+          localStorage.setItem("watermarkText", watermarkText);
+        }
+
         clearToolState(toolId);
         router.push(`/tool/${toolId}/processing`);
       } else {
@@ -184,7 +185,6 @@ export default function ToolUploadPage() {
     router.push("/dashboard");
   };
 
-  /* ================= PDF TOOLS PAGE ================= */
   if (toolId === "pdf-tools") {
     return (
       <div className="min-h-screen flex flex-col">
@@ -208,7 +208,6 @@ export default function ToolUploadPage() {
     );
   }
 
-  /* ================= UPLOAD PAGE ================= */
   return (
     <div className="min-h-screen flex flex-col">
       <main className="container mx-auto px-6 py-12 md:px-12">
@@ -251,14 +250,7 @@ export default function ToolUploadPage() {
         </motion.div>
 
         {selectedFile && (
-          <div
-            className="
-              mt-6 flex items-center gap-3 p-4 rounded-xl border bg-white shadow-sm
-              transition
-              hover:bg-gray-50
-              hover:border-gray-300
-            "
-          >
+          <div className="mt-6 flex items-center gap-3 p-4 rounded-xl border bg-white shadow-sm hover:bg-gray-50 hover:border-gray-300">
             {getFileIcon(selectedFile)}
 
             <div className="flex-1">
@@ -268,19 +260,47 @@ export default function ToolUploadPage() {
               </p>
             </div>
 
-            <button
-              onClick={handleReplaceFile}
-              className="text-sm text-blue-600 hover:underline"
-            >
+            <button onClick={handleReplaceFile} className="text-sm text-blue-600 hover:underline">
               Replace
             </button>
 
-            <button
-              onClick={handleRemoveFile}
-              className="text-sm text-red-600 hover:underline"
-            >
+            <button onClick={handleRemoveFile} className="text-sm text-red-600 hover:underline">
               Remove
             </button>
+          </div>
+        )}
+
+        {/* Watermark Text */}
+        {toolId === "pdf-watermark" && (
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Watermark Text
+            </label>
+            <input
+              type="text"
+              value={watermarkText}
+              onChange={(e) => setWatermarkText(e.target.value)}
+              placeholder="Enter watermark text (e.g., Confidential)"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        )}
+
+        {/* Rotation */}
+        {toolId === "pdf-watermark" && (
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Watermark Rotation
+            </label>
+            <select
+              value={rotationAngle}
+              onChange={(e) => setRotationAngle(Number(e.target.value))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value={0}>0°</option>
+              <option value={45}>45°</option>
+              <option value={90}>90°</option>
+            </select>
           </div>
         )}
 
