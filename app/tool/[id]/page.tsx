@@ -37,6 +37,9 @@ export default function ToolUploadPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasUnsavedWork, setHasUnsavedWork] = useState(false);
 
+  /* ✅ NEW — Watermark Text State */
+  const [watermarkText, setWatermarkText] = useState("");
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [persistedFileMeta, setPersistedFileMeta] = useState<{
@@ -87,6 +90,7 @@ export default function ToolUploadPage() {
       case "pdf-split":
       case "pdf-protect":
       case "pdf-compress":
+      case "pdf-watermark": // ✅ NEW
         return [".pdf"];
       default:
         return [];
@@ -162,6 +166,11 @@ export default function ToolUploadPage() {
       const ok = await storeFile(selectedFile);
 
       if (ok) {
+        /* ✅ Save watermark text for later processing */
+        if (toolId === "pdf-watermark") {
+          localStorage.setItem("watermarkText", watermarkText);
+        }
+
         clearToolState(toolId);
         router.push(`/tool/${toolId}/processing`);
       } else {
@@ -251,14 +260,7 @@ export default function ToolUploadPage() {
         </motion.div>
 
         {selectedFile && (
-          <div
-            className="
-              mt-6 flex items-center gap-3 p-4 rounded-xl border bg-white shadow-sm
-              transition
-              hover:bg-gray-50
-              hover:border-gray-300
-            "
-          >
+          <div className="mt-6 flex items-center gap-3 p-4 rounded-xl border bg-white shadow-sm hover:bg-gray-50 hover:border-gray-300">
             {getFileIcon(selectedFile)}
 
             <div className="flex-1">
@@ -281,6 +283,23 @@ export default function ToolUploadPage() {
             >
               Remove
             </button>
+          </div>
+        )}
+
+        {/* ✅ NEW — Watermark Input UI */}
+        {toolId === "pdf-watermark" && (
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Watermark Text
+            </label>
+
+            <input
+              type="text"
+              value={watermarkText}
+              onChange={(e) => setWatermarkText(e.target.value)}
+              placeholder="Enter watermark text (e.g., Confidential)"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
           </div>
         )}
 
