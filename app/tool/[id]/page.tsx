@@ -6,11 +6,15 @@ import { ToolCard } from "@/components/ToolCard";
 import { FileText, Upload } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
+import { useState } from "react";
 
 export default function ToolUploadPage() {
+
     const router = useRouter();
     const params = useParams();
     const toolId = params.id;
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
     const getToolTitle = () => {
         switch (toolId) {
             case "file-conversion":
@@ -25,6 +29,11 @@ export default function ToolUploadPage() {
     };
 
 
+const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  setSelectedFile(file);
+};
 
 
 
@@ -143,6 +152,26 @@ export default function ToolUploadPage() {
                         <span>Supported formats: PDF, JPG, PNG</span>
                         <span>Max file size: 10MB</span>
                     </div>
+                    {selectedFile && (
+  <div
+    className="
+      mt-6 flex items-center gap-3 p-4 rounded-xl border bg-white
+      transition
+      hover:bg-gray-50
+      hover:border-gray-300
+    "
+  >
+    <FileText className="w-8 h-8 text-blue-500" />
+
+    <div className="flex-1">
+      <p className="font-medium">{selectedFile.name}</p>
+      <p className="text-sm text-gray-500">
+        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+      </p>
+    </div>
+  </div>
+)}
+
                 </div>
             </main>
         </div>
