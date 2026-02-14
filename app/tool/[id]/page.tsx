@@ -37,7 +37,7 @@ export default function ToolUploadPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasUnsavedWork, setHasUnsavedWork] = useState(false);
 
-  /* watermark states */
+  /* watermark options */
   const [watermarkText, setWatermarkText] = useState("");
   const [rotationAngle, setRotationAngle] = useState(45);
   const [opacity, setOpacity] = useState(40);
@@ -50,14 +50,14 @@ export default function ToolUploadPage() {
     type: string;
   } | null>(null);
 
-  /* restore stored file meta */
+  /* restore stored state */
   useEffect(() => {
     if (!toolId) return;
     const stored = loadToolState(toolId);
     if (stored?.fileMeta) setPersistedFileMeta(stored.fileMeta);
   }, [toolId]);
 
-  /* save file meta */
+  /* save state */
   useEffect(() => {
     if (!toolId || !selectedFile) return;
 
@@ -70,20 +70,19 @@ export default function ToolUploadPage() {
     });
   }, [toolId, selectedFile]);
 
-  /* warn before leaving */
+  /* warn before leaving page */
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    const handler = (e: BeforeUnloadEvent) => {
       if (!hasUnsavedWork) return;
       e.preventDefault();
       e.returnValue = "";
     };
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () =>
-      window.removeEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
   }, [hasUnsavedWork]);
 
-  /* supported types */
+  /* supported file types */
   const getSupportedTypes = () => {
     switch (toolId) {
       case "ocr":
@@ -107,7 +106,7 @@ export default function ToolUploadPage() {
     }
   };
 
-  /* icon */
+  /* file icon */
   const getFileIcon = (file: File) => {
     const ext = file.name.split(".").pop()?.toLowerCase();
 
@@ -143,7 +142,7 @@ export default function ToolUploadPage() {
     setHasUnsavedWork(true);
   };
 
-  /* remove */
+  /* remove file */
   const handleRemoveFile = () => {
     const confirmed = window.confirm(
       "This will remove your uploaded file. Continue?"
@@ -159,12 +158,12 @@ export default function ToolUploadPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  /* replace */
+  /* replace file */
   const handleReplaceFile = () => {
     fileInputRef.current?.click();
   };
 
-  /* process */
+  /* process file */
   const handleProcessFile = async () => {
     if (!selectedFile) return;
 
@@ -178,7 +177,7 @@ export default function ToolUploadPage() {
         return;
       }
 
-      /* watermark options */
+      /* save watermark settings */
       if (toolId === "pdf-watermark") {
         localStorage.setItem("watermarkRotation", rotationAngle.toString());
         localStorage.setItem("watermarkText", watermarkText);
@@ -195,7 +194,7 @@ export default function ToolUploadPage() {
     }
   };
 
-  /* back */
+  /* back navigation */
   const handleBackNavigation = () => {
     if (hasUnsavedWork) {
       const confirmLeave = window.confirm(
@@ -206,7 +205,7 @@ export default function ToolUploadPage() {
     router.push("/dashboard");
   };
 
-  /* PDF tools page */
+  /* PDF tools list */
   if (toolId === "pdf-tools") {
     return (
       <div className="min-h-screen flex flex-col">
@@ -245,6 +244,7 @@ export default function ToolUploadPage() {
 
         <h1 className="text-3xl font-semibold mb-8">Upload your file</h1>
 
+        {/* Upload box */}
         <motion.div
           onClick={() => fileInputRef.current?.click()}
           onDragOver={(e) => {
@@ -277,6 +277,7 @@ export default function ToolUploadPage() {
           />
         </motion.div>
 
+        {/* File preview */}
         {selectedFile && (
           <div className="mt-6 flex items-center gap-3 p-4 border rounded-xl bg-white shadow-sm">
             {getFileIcon(selectedFile)}
@@ -304,6 +305,7 @@ export default function ToolUploadPage() {
           </div>
         )}
 
+        {/* Process button */}
         <button
           onClick={handleProcessFile}
           disabled={!selectedFile || isProcessing}
@@ -326,6 +328,7 @@ export default function ToolUploadPage() {
         {fileError && (
           <p className="mt-3 text-sm text-red-600">{fileError}</p>
         )}
+
       </main>
     </div>
   );

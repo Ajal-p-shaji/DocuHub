@@ -16,7 +16,7 @@ export const PDF_TOOLS = Object.freeze([
     icon: Combine,
   },
 
-  /* DOCUMENT → PDF */
+  // Document → PDF
   {
     id: "document-to-pdf",
     title: "Document to PDF",
@@ -25,7 +25,7 @@ export const PDF_TOOLS = Object.freeze([
     icon: FileText,
   },
 
-  /* JPEG → PDF */
+  // JPEG → PDF
   {
     id: "jpeg-to-pdf",
     title: "JPEG to PDF",
@@ -34,7 +34,7 @@ export const PDF_TOOLS = Object.freeze([
     icon: ImageIcon,
   },
 
-  /* PNG → PDF */
+  // PNG → PDF
   {
     id: "png-to-pdf",
     title: "PNG to PDF",
@@ -50,6 +50,7 @@ export const PDF_TOOLS = Object.freeze([
     href: "/tool/pdf-compress",
     icon: Minimize2,
   },
+
   {
     id: "pdf-split",
     title: "Split PDF",
@@ -57,6 +58,7 @@ export const PDF_TOOLS = Object.freeze([
     href: "/dashboard/pdf-split",
     icon: Scissors,
   },
+
   {
     id: "pdf-protect",
     title: "Protect PDF",
@@ -64,6 +66,7 @@ export const PDF_TOOLS = Object.freeze([
     href: "/tool/pdf-protect",
     icon: FileText,
   },
+
   {
     id: "pdf-redact",
     title: "Redact PDF",
@@ -71,6 +74,7 @@ export const PDF_TOOLS = Object.freeze([
     href: "/tool/pdf-redact",
     icon: FileUp,
   },
+
   {
     id: "metadata-viewer",
     title: "Metadata Viewer",
@@ -79,7 +83,7 @@ export const PDF_TOOLS = Object.freeze([
     icon: FileText,
   },
 
-  /* WATERMARK */
+  // Watermark Tool
   {
     id: "pdf-watermark",
     title: "Watermark PDF",
