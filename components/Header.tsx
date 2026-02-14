@@ -30,8 +30,8 @@ export function Header() {
       </div>
 
       {/* Banner Strip - Now part of the Header */}
-      <div className="w-full bg-[#cadbd9] py-3 border-b border-white/20">
-        <div className="container mx-auto px-6 flex flex-wrap items-center justify-center gap-6 md:gap-8 text-[#2d3748] font-medium text-sm md:text-base">
+<div className="w-full bg-[#cadbd9] py-2.5 border-b border-white/20">
+<div className="container mx-auto px-6 md:px-12 flex items-center justify-between pt-6 pb-4">
           <span className="flex items-center gap-2">
             <Shield className="w-4 h-4" /> 100% Client-Side
           </span>
