@@ -15,7 +15,7 @@ export const PDF_TOOLS = Object.freeze([
     icon: Combine,
   },
 
-  // ✅ ADDED — Document to PDF
+  // ✅ Document to PDF
   {
     id: "document-to-pdf",
     title: "Document to PDF",
@@ -31,6 +31,7 @@ export const PDF_TOOLS = Object.freeze([
     href: "/tool/pdf-compress",
     icon: Minimize2,
   },
+
   {
     id: "pdf-split",
     title: "Split PDF",
@@ -38,6 +39,7 @@ export const PDF_TOOLS = Object.freeze([
     href: "/dashboard/pdf-split",
     icon: Scissors,
   },
+
   {
     id: "pdf-protect",
     title: "Protect PDF",
@@ -45,6 +47,7 @@ export const PDF_TOOLS = Object.freeze([
     href: "/tool/pdf-protect",
     icon: FileText,
   },
+
   {
     id: "pdf-redact",
     title: "Redact PDF",
@@ -52,6 +55,7 @@ export const PDF_TOOLS = Object.freeze([
     href: "/tool/pdf-redact",
     icon: FileUp,
   },
+
   {
     id: "metadata-viewer",
     title: "Metadata Viewer",
@@ -60,12 +64,21 @@ export const PDF_TOOLS = Object.freeze([
     icon: FileText,
   },
 
-  // ✅ NEW — Watermark Tool (ONLY ADDITION)
+  // ✅ Watermark Tool
   {
     id: "pdf-watermark",
     title: "Watermark PDF",
     description: "Add text watermark to PDF files",
     href: "/tool/pdf-watermark",
+    icon: FileText,
+  },
+
+  // ✅ NEW — Page Numbers Tool (Your New Issue Feature)
+  {
+    id: "pdf-page-numbers",
+    title: "Add Page Numbers",
+    description: "Insert page numbers into PDF",
+    href: "/tool/pdf-page-numbers",
     icon: FileText,
   },
 ]);
